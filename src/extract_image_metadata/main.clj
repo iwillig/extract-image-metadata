@@ -6,68 +6,12 @@
    [clojure.string :as string])
   (:import
    (com.drew.metadata.exif GpsDirectory)
-   (com.drew.imaging ImageMetadataReader)
-   (javax.imageio ImageIO))
+   (com.drew.imaging ImageMetadataReader))
   (:gen-class))
-
-(defn display-attrs
-  [_node attributes]
-  (let [count (.getLength attributes)]
-    (into {}
-           (mapv (fn [x-index]
-                   (let [x (.item attributes x-index)]
-                     [(str (.getNodeName x))
-                      (.getNodeValue x)]))
-                 (range 0 count)))))
-
-(defn display-node
-  [node]
-  [(.getNodeName node)
-   (when-let [child (.getFirstChild node)]
-     (display-node child))
-   (display-attrs node (.getAttributes node))])
-
-(defn display-recur
-  [node]
-  (loop [node node property {}]
-    (if-let [child (.getFirstChild node)]
-      (let [node-name (str (.getNodeName node))]
-        (recur child (assoc property node-name (display-node child))))
-      property)))
 
 (defn list-files
   [path]
   (.listFiles (java.io.File. path)))
-
-(comment
-  (let [stream (ImageIO/createImageInputStream file)
-        readers (ImageIO/getImageReaders stream)]
-    [(.getName file)
-     (let [things (atom [])]
-       (while (.hasNext readers)
-         (let [reader (.next readers)]
-           (.setInput reader stream true)
-           (let [metadata (.getImageMetadata reader 0)]
-             (doall
-              (for [name (seq
-                          (.getMetadataFormatNames metadata))]
-                (swap! things conj [(.getName file)
-                                    (display-recur (.getAsTree metadata name))]))))))
-       @things)])
-
-  (into {}
-        (for [file (list-files)]
-          [(.getName file)
-           (select-keys
-            (into {}
-                  (for [dir (.getDirectories (ImageMetadataReader/readMetadata file))]
-                    [(.getName dir)
-                     (into {}
-                           (for [tag (.getTags dir)]
-                             [(.getTagName tag)
-                              (.getDescription tag)]))]))
-            ["GPS"])])))
-
 
 (def cli-options
   [["-f" "--folder FOLDER" :id :folder]
@@ -102,9 +46,10 @@
   (let [files (list-files folder)]
 
     (keep (fn [file]
-            (let [gps-info (pull-gps-info-from-file file)]
-              (when (some? gps-info)
-                (conj gps-info (.getName file)))))
+            (when (.isFile file)
+              (let [gps-info (pull-gps-info-from-file file)]
+                (when (some? gps-info)
+                  (conj gps-info (.getName file))))))
           files)))
 
 (def header (list "name" "latitude" "longitude"))
