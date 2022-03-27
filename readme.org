@@ -1,0 +1,26 @@
+* Extract Image Metdata
+Extract image irrigation and generates a site map.
+
+Core Issue,
+
+Sprinkler's normally don't have id's or numbers. This makes it hard to identify
+them.
+
+** CSV format
+*** current CSV format
+"file-name", "latitude", "longitude"
+*** Future format
+"file-name", "site-id", "controller-id", "station-id", "sprinkler-id"
+
+** Commands
+extract-gps-info
+extract-site
+extract-controller
+extract-station
+extract-sprinkler
+
+
+** Site
+*** Controller
+**** Station
+***** Sprinkler
