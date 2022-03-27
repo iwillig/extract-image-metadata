@@ -1,0 +1,1 @@
+java -cp extract-image-metadata.jar clojure.main -m extract-image-metadata.main "$@"

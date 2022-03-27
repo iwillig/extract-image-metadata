@@ -2,7 +2,8 @@
   (:require
    [clojure.data.csv :as csv]
    [clojure.java.io :as io]
-   [clojure.tools.cli :as cli])
+   [clojure.tools.cli :as cli]
+   [clojure.string :as string])
   (:import
    (com.drew.metadata.exif GpsDirectory)
    (com.drew.imaging ImageMetadataReader)
@@ -70,7 +71,8 @@
 
 (def cli-options
   [["-f" "--folder FOLDER" :id :folder]
-   ["-o" "--out-file FILE" :id :out-file]])
+   ["-o" "--out-file FILE" :id :out-file]
+   ["-h" "--help"]])
 
 ;; metadata.getFirstDirectoryOfType();
 ;; ;; metadata
@@ -107,21 +109,49 @@
 
 (def header (list "name" "latitude" "longitude"))
 
-(defn -main [& args]
-  (let [options (cli/parse-opts args cli-options)]
-    (when-not (seq (:errors options))
+(defn write-csv
+  [{:keys [folder out-file]}]
+  (let [gps-info (pull-gps-info-from-folder folder)]
+    (with-open [writer (io/writer out-file)]
+      (csv/write-csv writer
+                     (doall (conj gps-info header))))
+    "success"))
 
-      (let [folder (get-in options [:options :folder])
-            out-file (get-in options [:options :out-file])
-            gps-info (pull-gps-info-from-folder folder)]
-        (with-open [writer (io/writer out-file)]
-          (csv/write-csv writer
-                         (doall (conj gps-info header))))))))
+(defn usage [options-summary]
+  (->> ["Tool for extracting gsp location information from image files"
+        "Usage: extract-gps-info [options]"
+        "Uses the  com.drewnoakes/metadata-extractor java library for information"
+        "Options:"
+        options-summary
+        ""]
+       (string/join \newline)))
+
+(defn error-msg [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (string/join \newline errors)))
+
+(defn exit [status msg]
+  (println msg)
+  (System/exit status)
+  #_(println `(System/exit ~status)))
+
+(defn -main [& args]
+  (let [{:keys [options errors summary]} (cli/parse-opts args cli-options)]
+
+    (cond
+      (true? (:help options))
+      (exit 0 (usage summary))
+      (seq errors)
+      (exit 1 (error-msg errors))
+      :else
+      (exit 0 (write-csv options)))))
 
 (comment
 
   (-main "--folder" "images"
          "--out-file" "test.csv")
+
+  (-main "--help")
 
 
   )
