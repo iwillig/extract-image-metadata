@@ -7,13 +7,19 @@ outdated:
 test:
 	clojure -M:dev:tests
 
-extract-image-metadata.jar: src/**/*.clj
-	clojure -X:uberjar :jar extract-image-metadata.jar
+extract.jar: src/**/*.clj
+	clojure -X:uberjar :jar extract.jar :main-class extract-image-metadata.main
 
 run:
-	java -cp extract-image-metadata.jar clojure.main -m extract-image-metadata.main
+	java -jar extract.jar
 
 clean:
-	rm extract-image-metadata.jar
+	-rm extract.jar
+	-rm extract
+	-rm extract.build_artifacts.txt
+	-rm -rf classes
+
+native:
+	clojure -M:native-image
 
 .PHONY: run clean rebel outdated test
